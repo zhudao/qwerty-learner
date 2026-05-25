@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   sync:
@@ -30,7 +29,6 @@ jobs:
       - name: Sync with upstream (默认分支)
         run: |
           echo "开始同步 fork → 使用上游默认分支"
-
           gh repo sync ${{ github.repository }} \
             --source ${{ steps.get-upstream.outputs.upstream }} \
             --force
