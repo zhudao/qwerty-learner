@@ -1,43 +1,36 @@
-name: Sync Fork
+name: Sync Fork (自动获取上游)
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
+
 
 permissions:
   contents: write
+  workflows: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout fork
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          fetch-depth: 0
-
-      - name: Add upstream remote
+      - name: Get upstream repository
+        id: get-upstream
         run: |
-          git remote add upstream https://github.com/RealKai42/qwerty-learner.git || true
-          git fetch upstream || true
-
-      - name: Check if merge is needed
-        id: check
-        run: |
-          behind=$(git rev-list --count HEAD..upstream/master 2>/dev/null || echo 0)
-          echo "behind=$behind" >> $GITHUB_OUTPUT
-          if [ "$behind" -gt 0 ]; then
-            echo "需要同步 $behind 个提交"
-          else
-            echo "已是最新"
+          UPSTREAM=$(gh api repos/${{ github.repository }} --jq '.parent.full_name')
+          if [ "$UPSTREAM" == "null" ]; then
+            echo "这不是一个 fork 仓库，请手动指定上游"
+            exit 1
           fi
+          echo "upstream=$UPSTREAM" >> $GITHUB_OUTPUT
+          echo "已检测到上游: $UPSTREAM"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Merge upstream
-        if: steps.check.outputs.behind != '0'
-        run: git merge upstream/master --no-edit
-
-      - name: Push changes
-        if: steps.check.outputs.behind != '0'
-        run: git push
+      - name: Sync with upstream
+        run: |
+          gh repo sync ${{ github.repository }} \
+            --source ${{ steps.get-upstream.outputs.upstream }} \
+            -b ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
