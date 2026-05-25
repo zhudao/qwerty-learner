@@ -19,18 +19,20 @@ jobs:
         run: |
           UPSTREAM=$(gh api repos/${{ github.repository }} --jq '.parent.full_name')
           if [ "$UPSTREAM" == "null" ]; then
-            echo "这不是一个 fork 仓库，请手动指定上游"
+            echo "这不是一个 fork 仓库"
             exit 1
           fi
           echo "upstream=$UPSTREAM" >> $GITHUB_OUTPUT
-          echo "已检测到上游: $UPSTREAM"
+          echo "✅ 上游仓库: $UPSTREAM"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sync with upstream
+      - name: Sync with upstream (默认分支)
         run: |
+          echo "开始同步 fork → 使用上游默认分支"
+
           gh repo sync ${{ github.repository }} \
             --source ${{ steps.get-upstream.outputs.upstream }} \
-            -b ${{ github.ref_name }}
+            --force
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
