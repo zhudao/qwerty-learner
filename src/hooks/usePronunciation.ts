@@ -22,12 +22,18 @@ function spokenWord(word: string): string {
     if (/[A-Za-z]/.test(before) && /[A-Za-z]/.test(after)) return marks
     return ''
   })
-  return withoutLooseQuotes.replace(/\s+/g, ' ').trim()
+  // Youdao rejects a space before ! or ?. "goodbye !" and "Auf Wiedersehen !"
+  // return 500. "goodbye!" and "Auf Wiedersehen!" return 200.
+  return withoutLooseQuotes
+    .replace(/\s+/g, ' ')
+    .replace(/ ([!?])/g, '$1')
+    .trim()
 }
 
 export function generateWordSoundSrc(word: string, pronunciation: Exclude<PronunciationType, false>): string {
-  // "marui/marui" becomes まるい/まるい, which Youdao rejects. Read the first form.
-  const source = pronunciation === 'romaji' || pronunciation === 'ja' ? word.split('/')[0] : word
+  // Youdao rejects a slash. television/TV and aus/sprechen both 500.
+  // Read the first spelling. The headword on screen is unchanged.
+  const source = word.split('/')[0]
   const cleaned = spokenWord(source)
   if (!cleaned) return ''
   const spoken = pronunciation === 'romaji' ? romajiToHiragana(cleaned) : cleaned
